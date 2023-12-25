@@ -8,5 +8,5 @@
 ## Installation
 
 ```
-Install-Package Soenneker.Json.OptionsCollection
+dotnet add package Soenneker.Json.OptionsCollection
 ```
