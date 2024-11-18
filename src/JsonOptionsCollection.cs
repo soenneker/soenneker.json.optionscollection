@@ -92,11 +92,11 @@ public static class JsonOptionsCollection
         }
         else
         {
-            options = optionType.Name switch
+            options = optionType.Value switch
             {
-                nameof(JsonOptionType.General) => GeneralOptions,
-                nameof(JsonOptionType.Pretty) => PrettyOptions,
-                nameof(JsonOptionType.PrettySafe) => PrettySafeOptions,
+                JsonOptionType.General => GeneralOptions,
+                JsonOptionType.Pretty => PrettyOptions,
+                JsonOptionType.PrettySafe => PrettySafeOptions,
                 _ => WebOptions
             };
         }
