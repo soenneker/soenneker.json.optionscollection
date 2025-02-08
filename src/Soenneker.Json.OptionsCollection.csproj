@@ -41,6 +41,6 @@
 
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 
-        <PackageReference Include="Soenneker.Enums.JsonOptions" Version="3.0.569" />
+        <PackageReference Include="Soenneker.Enums.JsonOptions" Version="3.0.570" />
     </ItemGroup>
 </Project>
