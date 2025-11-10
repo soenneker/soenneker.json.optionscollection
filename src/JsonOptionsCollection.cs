@@ -19,48 +19,52 @@ public static class JsonOptionsCollection
     public static JsonSerializerOptions GeneralOptions => GeneralHolder.Value;
     public static JsonSerializerOptions WebOptions => WebHolder.Value;
     public static JsonSerializerSettings Newtonsoft => NewtonsoftHolder.Value;
-    public static JsonSerializerOptions PrettyOptions => PrettyHolder.Value;         // unsafe escaping
+    public static JsonSerializerOptions PrettyOptions => PrettyHolder.Value; // unsafe escaping
     public static JsonSerializerOptions PrettySafeOptions => PrettySafeHolder.Value; // safe escaping
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static JsonSerializerOptions GetOptionsFromType(JsonOptionType? optionType) =>
-        optionType switch
-        {
-            null => WebOptions,
-            JsonOptionType.General => GeneralOptions,
-            JsonOptionType.Pretty => PrettyOptions,
-            JsonOptionType.PrettySafe => PrettySafeOptions,
-            _ => WebOptions
-        };
+    public static JsonSerializerOptions GetOptionsFromType(JsonOptionType? optionType)
+    {
+        if (optionType == null)
+            return WebOptions;
 
+        switch (optionType.Value)
+        {
+            case JsonOptionType.GeneralValue:
+                return GeneralOptions;
+
+            case JsonOptionType.PrettyValue:
+                return PrettyOptions;
+            case JsonOptionType.PrettySafeValue:
+                return PrettySafeOptions;
+            default:
+                return WebOptions;
+        }
+    }
     // -------- Holders (initialize on first access) --------
 
     private static class GeneralHolder
     {
-        internal static readonly JsonSerializerOptions Value = CreateFrozen(
-            JsonSerializerDefaults.General, writeIndented: false,
-            unsafeRelaxedEscaping: false, includeEnumConverter: false, skipComments: true);
+        internal static readonly JsonSerializerOptions Value = CreateFrozen(JsonSerializerDefaults.General, writeIndented: false, unsafeRelaxedEscaping: false,
+            includeEnumConverter: false, skipComments: true);
     }
 
     private static class WebHolder
     {
-        internal static readonly JsonSerializerOptions Value = CreateFrozen(
-            JsonSerializerDefaults.Web, writeIndented: false,
-            unsafeRelaxedEscaping: false, includeEnumConverter: true, skipComments: true);
+        internal static readonly JsonSerializerOptions Value = CreateFrozen(JsonSerializerDefaults.Web, writeIndented: false, unsafeRelaxedEscaping: false,
+            includeEnumConverter: true, skipComments: true);
     }
 
     private static class PrettyHolder
     {
-        internal static readonly JsonSerializerOptions Value = CreateFrozen(
-            JsonSerializerDefaults.General, writeIndented: true,
-            unsafeRelaxedEscaping: true, includeEnumConverter: true, skipComments: false);
+        internal static readonly JsonSerializerOptions Value = CreateFrozen(JsonSerializerDefaults.General, writeIndented: true, unsafeRelaxedEscaping: true,
+            includeEnumConverter: true, skipComments: false);
     }
 
     private static class PrettySafeHolder
     {
-        internal static readonly JsonSerializerOptions Value = CreateFrozen(
-            JsonSerializerDefaults.General, writeIndented: true,
-            unsafeRelaxedEscaping: false, includeEnumConverter: true, skipComments: false);
+        internal static readonly JsonSerializerOptions Value = CreateFrozen(JsonSerializerDefaults.General, writeIndented: true, unsafeRelaxedEscaping: false,
+            includeEnumConverter: true, skipComments: false);
     }
 
     private static class NewtonsoftHolder
@@ -70,12 +74,8 @@ public static class JsonOptionsCollection
 
     // -------- Builders --------
 
-    private static JsonSerializerOptions CreateFrozen(
-        JsonSerializerDefaults defaults,
-        bool writeIndented,
-        bool unsafeRelaxedEscaping,
-        bool includeEnumConverter,
-        bool skipComments)
+    private static JsonSerializerOptions CreateFrozen(JsonSerializerDefaults defaults, bool writeIndented, bool unsafeRelaxedEscaping,
+        bool includeEnumConverter, bool skipComments)
     {
         var opts = new JsonSerializerOptions(defaults)
         {
