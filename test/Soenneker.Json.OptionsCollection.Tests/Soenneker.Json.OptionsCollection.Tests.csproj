@@ -27,7 +27,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\Soenneker.Json.OptionsCollection.csproj" />
+        <ProjectReference Include="..\..\src\Soenneker.Json.OptionsCollection\Soenneker.Json.OptionsCollection.csproj" />
     </ItemGroup>
 
     <ItemGroup>
