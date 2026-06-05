@@ -9,6 +9,9 @@ using Soenneker.Enums.JsonOptions;
 
 namespace Soenneker.Json.OptionsCollection;
 
+/// <summary>
+/// Represents the json options collection.
+/// </summary>
 public static class JsonOptionsCollection
 {
     // Reuse singletons to avoid per-options allocations.
@@ -16,12 +19,32 @@ public static class JsonOptionsCollection
     private static readonly StringEnumConverter _newtEnum = new();
     private static readonly DefaultJsonTypeInfoResolver _reflectionResolver = new(); // thread-safe
 
+    /// <summary>
+    /// Gets or sets general options.
+    /// </summary>
     public static JsonSerializerOptions GeneralOptions => GeneralHolder.Value;
+    /// <summary>
+    /// Gets or sets web options.
+    /// </summary>
     public static JsonSerializerOptions WebOptions => WebHolder.Value;
+    /// <summary>
+    /// Gets or sets newtonsoft.
+    /// </summary>
     public static JsonSerializerSettings Newtonsoft => NewtonsoftHolder.Value;
+    /// <summary>
+    /// Gets or sets pretty options.
+    /// </summary>
     public static JsonSerializerOptions PrettyOptions => PrettyHolder.Value; // unsafe escaping
+    /// <summary>
+    /// Gets or sets pretty safe options.
+    /// </summary>
     public static JsonSerializerOptions PrettySafeOptions => PrettySafeHolder.Value; // safe escaping
 
+    /// <summary>
+    /// Gets options from type.
+    /// </summary>
+    /// <param name="optionType">The option type.</param>
+    /// <returns>The result of the operation.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static JsonSerializerOptions GetOptionsFromType(JsonOptionType? optionType)
     {
