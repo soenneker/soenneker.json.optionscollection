@@ -43,8 +43,8 @@ public static class JsonOptionsCollection
     /// <summary>
     /// Gets options from type.
     /// </summary>
-    /// <param name="optionType">The option type.</param>
-    /// <returns>The result of the operation.</returns>
+    /// <param name="optionType">Option Type for the get options from type operation.</param>
+    /// <returns>The requested JSON Serializer Options.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static JsonSerializerOptions GetOptionsFromType(JsonOptionType? optionType)
     {
