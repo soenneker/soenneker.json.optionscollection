@@ -10,7 +10,7 @@ using Soenneker.Enums.JsonOptions;
 namespace Soenneker.Json.OptionsCollection;
 
 /// <summary>
-/// Represents the json options collection.
+/// Provides reusable, read-only System.Text.Json profiles and isolated Newtonsoft.Json settings.
 /// </summary>
 public static class JsonOptionsCollection
 {
@@ -20,23 +20,23 @@ public static class JsonOptionsCollection
     private static readonly DefaultJsonTypeInfoResolver _reflectionResolver = new(); // thread-safe
 
     /// <summary>
-    /// Gets or sets general options.
+    /// Gets compact, general-purpose System.Text.Json options without string-enum conversion.
     /// </summary>
     public static JsonSerializerOptions GeneralOptions => GeneralHolder.Value;
     /// <summary>
-    /// Gets or sets web options.
+    /// Gets compact System.Text.Json web defaults with string-enum conversion.
     /// </summary>
     public static JsonSerializerOptions WebOptions => WebHolder.Value;
     /// <summary>
-    /// Gets or sets newtonsoft.
+    /// Creates Newtonsoft.Json settings with null omission and string-enum conversion.
     /// </summary>
-    public static JsonSerializerSettings Newtonsoft => NewtonsoftHolder.Value;
+    public static JsonSerializerSettings Newtonsoft => CreateNewtonsoft();
     /// <summary>
-    /// Gets or sets pretty options.
+    /// Gets indented System.Text.Json options with relaxed JSON escaping.
     /// </summary>
     public static JsonSerializerOptions PrettyOptions => PrettyHolder.Value; // unsafe escaping
     /// <summary>
-    /// Gets or sets pretty safe options.
+    /// Gets indented System.Text.Json options with the default safe encoder.
     /// </summary>
     public static JsonSerializerOptions PrettySafeOptions => PrettySafeHolder.Value; // safe escaping
 
@@ -48,7 +48,7 @@ public static class JsonOptionsCollection
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static JsonSerializerOptions GetOptionsFromType(JsonOptionType? optionType)
     {
-        if (optionType == null)
+        if (optionType is null)
             return WebOptions;
 
         switch (optionType.Value)
@@ -90,11 +90,6 @@ public static class JsonOptionsCollection
             includeEnumConverter: true, skipComments: false);
     }
 
-    private static class NewtonsoftHolder
-    {
-        internal static readonly JsonSerializerSettings Value = CreateNewtonsoft();
-    }
-
     // -------- Builders --------
 
     private static JsonSerializerOptions CreateFrozen(JsonSerializerDefaults defaults, bool writeIndented, bool unsafeRelaxedEscaping,
@@ -115,25 +110,18 @@ public static class JsonOptionsCollection
         if (includeEnumConverter)
             opts.Converters.Add(_stjEnum);
 
-        // --- IMPORTANT: .NET 9 requires an explicit resolver before freezing. ---
-        // If you have a source-generated context, prefer:
-        // opts.TypeInfoResolver = JsonTypeInfoResolver.Combine(MyContext.Default, ReflectionResolver);
         EnsureResolver(opts);
 
-        opts.MakeReadOnly(); // safe on .NET 9 now that a resolver is set
+        opts.MakeReadOnly();
         return opts;
     }
 
     private static void EnsureResolver(JsonSerializerOptions opts)
     {
-        // If neither TypeInfoResolver nor the chain is set, bind the reflection resolver explicitly.
         if (opts.TypeInfoResolver is null && opts.TypeInfoResolverChain.Count == 0)
         {
             opts.TypeInfoResolver = _reflectionResolver;
         }
-        // If you want to ALWAYS include reflection as a fallback even when a chain exists, you could:
-        // else if (opts.TypeInfoResolver is null)
-        //     opts.TypeInfoResolver = JsonTypeInfoResolver.Combine(opts.TypeInfoResolverChain.ToArray(), ReflectionResolver);
     }
 
     private static JsonSerializerSettings CreateNewtonsoft()

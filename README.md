@@ -1,11 +1,12 @@
 [![](https://img.shields.io/nuget/v/Soenneker.Json.OptionsCollection.svg?style=for-the-badge)](https://www.nuget.org/packages/Soenneker.Json.OptionsCollection/)
+[![](https://img.shields.io/github/actions/workflow/status/soenneker/soenneker.json.optionscollection/build-and-test.yml?style=for-the-badge)](https://github.com/soenneker/soenneker.json.optionscollection/actions/workflows/build-and-test.yml)
 [![](https://img.shields.io/github/actions/workflow/status/soenneker/soenneker.json.optionscollection/publish-package.yml?style=for-the-badge)](https://github.com/soenneker/soenneker.json.optionscollection/actions/workflows/publish-package.yml)
 [![](https://img.shields.io/nuget/dt/Soenneker.Json.OptionsCollection.svg?style=for-the-badge)](https://www.nuget.org/packages/Soenneker.Json.OptionsCollection/)
 [![](https://img.shields.io/github/actions/workflow/status/soenneker/soenneker.json.optionscollection/codeql.yml?label=CodeQL&style=for-the-badge)](https://github.com/soenneker/soenneker.json.optionscollection/actions/workflows/codeql.yml)
 
 # Soenneker.Json.OptionsCollection
 
-Represents the json options collection.
+Common serializer profiles for `System.Text.Json` and Newtonsoft.Json.
 
 ## Install
 
@@ -13,26 +14,58 @@ Represents the json options collection.
 dotnet add package Soenneker.Json.OptionsCollection
 ```
 
-## Quick start
+## System.Text.Json profiles
 
 ```csharp
+using System.Text.Json;
 using Soenneker.Json.OptionsCollection;
 
-var result = JsonOptionsCollection.GetOptionsFromType(/* supply optionType */ default!);
+string apiJson = JsonSerializer.Serialize(
+    response,
+    JsonOptionsCollection.WebOptions);
+
+string readableJson = JsonSerializer.Serialize(
+    response,
+    JsonOptionsCollection.PrettySafeOptions);
 ```
 
-Gets options from type.
+| Profile | Naming/defaults | Indented | Enum strings | Comment reads | Encoder |
+| --- | --- | ---: | ---: | --- | --- |
+| `GeneralOptions` | General | No | No | Skip | Default |
+| `WebOptions` | Web | No | Yes | Skip | Default |
+| `PrettyOptions` | General | Yes | Yes | Disallow | Relaxed |
+| `PrettySafeOptions` | General | Yes | Yes | Disallow | Default |
 
-## What you get
+All four profiles omit null properties and are shared, read-only instances. Clone one before customization:
 
-- `JsonOptionsCollection` — Represents the json options collection.
+```csharp
+var custom = new JsonSerializerOptions(
+    JsonOptionsCollection.WebOptions)
+{
+    WriteIndented = true
+};
+```
 
-## API at a glance
+`PrettyOptions` uses `UnsafeRelaxedJsonEscaping`, which leaves characters such as `<`, `>`, and `&` less escaped. Do not embed its output directly into HTML or a script context. Use `PrettySafeOptions` when output crosses a trust boundary.
 
-| API | What it does | Result / important behavior |
-| --- | --- | --- |
-| `JsonOptionsCollection.GeneralOptions` | Gets or sets general options. | Gets or sets general options. |
-| `JsonOptionsCollection.WebOptions` | Gets or sets web options. | Gets or sets web options. |
-| `JsonOptionsCollection.Newtonsoft` | Gets or sets newtonsoft. | Gets or sets newtonsoft. |
-| `JsonOptionsCollection.PrettyOptions` | Gets or sets pretty options. | Gets or sets pretty options. |
-| `JsonOptionsCollection.PrettySafeOptions` | Gets or sets pretty safe options. | Gets or sets pretty safe options. |
+## Select a profile by `JsonOptionType`
+
+```csharp
+JsonSerializerOptions options =
+    JsonOptionsCollection.GetOptionsFromType(optionType);
+```
+
+`GeneralValue`, `PrettyValue`, and `PrettySafeValue` select their matching profiles. A null or unrecognized value falls back to `WebOptions`.
+
+## Newtonsoft.Json
+
+```csharp
+using Newtonsoft.Json;
+
+JsonSerializerSettings settings = JsonOptionsCollection.Newtonsoft;
+settings.DateParseHandling = DateParseHandling.None;
+
+string json = JsonConvert.SerializeObject(value, settings);
+```
+
+Each access returns a new settings object, so caller customization cannot alter another serializer's behavior. The defaults omit null properties, write enums as strings, and leave `CheckAdditionalContent` disabled.
