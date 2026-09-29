@@ -1,123 +1,112 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata; // DefaultJsonTypeInfoResolver, JsonTypeInfoResolver
+using System.Text.Json.Serialization.Metadata;
 using Soenneker.Enums.JsonOptions;
 
 namespace Soenneker.Json.OptionsCollection;
 
-/// <summary>
-/// Provides reusable, read-only System.Text.Json profiles and isolated Newtonsoft.Json settings.
-/// </summary>
+/// <summary>Provides reusable reflection-based JSON profiles and explicit generated-metadata profiles for AOT.</summary>
 public static class JsonOptionsCollection
 {
-    // Reuse singletons to avoid per-options allocations.
-    private static readonly JsonStringEnumConverter _stjEnum = new();
+    private static readonly object _sync = new();
+    private static JsonSerializerOptions? _general;
+    private static JsonSerializerOptions? _web;
+    private static JsonSerializerOptions? _pretty;
+    private static JsonSerializerOptions? _prettySafe;
 
-    private static readonly DefaultJsonTypeInfoResolver _reflectionResolver = new(); // thread-safe
-
-    /// <summary>
-    /// Gets compact, general-purpose System.Text.Json options without string-enum conversion.
-    /// </summary>
-    public static JsonSerializerOptions GeneralOptions => GeneralHolder.Value;
-
-    /// <summary>
-    /// Gets compact System.Text.Json web defaults with string-enum conversion.
-    /// </summary>
-    public static JsonSerializerOptions WebOptions => WebHolder.Value;
-
-    /// <summary>
-    /// Gets indented System.Text.Json options with relaxed JSON escaping.
-    /// </summary>
-    public static JsonSerializerOptions PrettyOptions => PrettyHolder.Value; // unsafe escaping
-
-    /// <summary>
-    /// Gets indented System.Text.Json options with the default safe encoder.
-    /// </summary>
-    public static JsonSerializerOptions PrettySafeOptions => PrettySafeHolder.Value; // safe escaping
-
-    /// <summary>
-    /// Gets options from type.
-    /// </summary>
-    /// <param name="optionType">Option Type for the get options from type operation.</param>
-    /// <returns>The requested JSON Serializer Options.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static JsonSerializerOptions GetOptionsFromType(JsonOptionType? optionType)
+    /// <summary>Gets the read-only General reflection-based JSON profile.</summary>
+    public static JsonSerializerOptions GeneralOptions
     {
-        if (optionType is null)
-            return WebOptions;
+        [RequiresUnreferencedCode("Reflection-based profiles require preserved model members. Use CreateOptions with a generated JSON context in trimmed applications.")]
+        [RequiresDynamicCode("Reflection-based profiles and runtime enum converters require dynamic code. Use CreateOptions with a generated JSON context for AOT.")]
+        get => GetReflectionProfile(ref _general, JsonSerializerDefaults.General, false, false, false, true);
+    }
 
-        switch (optionType.Value)
+    /// <summary>Gets the read-only Web reflection-based JSON profile.</summary>
+    public static JsonSerializerOptions WebOptions
+    {
+        [RequiresUnreferencedCode("Reflection-based profiles require preserved model members. Use CreateOptions with a generated JSON context in trimmed applications.")]
+        [RequiresDynamicCode("Reflection-based profiles and runtime enum converters require dynamic code. Use CreateOptions with a generated JSON context for AOT.")]
+        get => GetReflectionProfile(ref _web, JsonSerializerDefaults.Web, false, false, true, true);
+    }
+
+    /// <summary>Gets the read-only Pretty reflection-based JSON profile.</summary>
+    public static JsonSerializerOptions PrettyOptions
+    {
+        [RequiresUnreferencedCode("Reflection-based profiles require preserved model members. Use CreateOptions with a generated JSON context in trimmed applications.")]
+        [RequiresDynamicCode("Reflection-based profiles and runtime enum converters require dynamic code. Use CreateOptions with a generated JSON context for AOT.")]
+        get => GetReflectionProfile(ref _pretty, JsonSerializerDefaults.General, true, true, true, false);
+    }
+
+    /// <summary>Gets the read-only PrettySafe reflection-based JSON profile.</summary>
+    public static JsonSerializerOptions PrettySafeOptions
+    {
+        [RequiresUnreferencedCode("Reflection-based profiles require preserved model members. Use CreateOptions with a generated JSON context in trimmed applications.")]
+        [RequiresDynamicCode("Reflection-based profiles and runtime enum converters require dynamic code. Use CreateOptions with a generated JSON context for AOT.")]
+        get => GetReflectionProfile(ref _prettySafe, JsonSerializerDefaults.General, true, false, true, false);
+    }
+
+    /// <summary>Gets a read-only reflection-based profile.</summary>
+    /// <param name="optionType">The profile; null selects web defaults.</param>
+    /// <returns>The cached profile.</returns>
+    [RequiresUnreferencedCode("Reflection-based profiles require preserved model members. Use CreateOptions with a generated JSON context in trimmed applications.")]
+        [RequiresDynamicCode("Reflection-based profiles and runtime enum converters require dynamic code. Use CreateOptions with a generated JSON context for AOT.")]
+    public static JsonSerializerOptions GetOptionsFromType(JsonOptionType? optionType) => optionType?.Value switch
+    {
+        JsonOptionType.GeneralValue => GeneralOptions,
+        JsonOptionType.PrettyValue => PrettyOptions,
+        JsonOptionType.PrettySafeValue => PrettySafeOptions,
+        _ => WebOptions
+    };
+
+    /// <summary>Creates a mutable JSON profile using only explicitly supplied metadata.</summary>
+    /// <param name="resolver">A generated JSON context or another reflection-free metadata resolver.</param>
+    /// <param name="optionType">The profile; null selects web defaults.</param>
+    /// <returns>The configured options. Configure string-enum conversion in the generated context for AOT.</returns>
+    public static JsonSerializerOptions CreateOptions(IJsonTypeInfoResolver resolver, JsonOptionType? optionType = null)
+    {
+        ArgumentNullException.ThrowIfNull(resolver);
+        JsonSerializerOptions options = optionType?.Value switch
         {
-            case JsonOptionType.GeneralValue:
-                return GeneralOptions;
+            JsonOptionType.GeneralValue => CreateProfile(JsonSerializerDefaults.General, false, false, true),
+            JsonOptionType.PrettyValue => CreateProfile(JsonSerializerDefaults.General, true, true, false),
+            JsonOptionType.PrettySafeValue => CreateProfile(JsonSerializerDefaults.General, true, false, false),
+            _ => CreateProfile(JsonSerializerDefaults.Web, false, false, true)
+        };
+        options.TypeInfoResolver = resolver;
+        return options;
+    }
 
-            case JsonOptionType.PrettyValue:
-                return PrettyOptions;
-            case JsonOptionType.PrettySafeValue:
-                return PrettySafeOptions;
-            default:
-                return WebOptions;
+    [RequiresUnreferencedCode("Reflection-based profiles require preserved model members. Use CreateOptions with a generated JSON context in trimmed applications.")]
+        [RequiresDynamicCode("Reflection-based profiles and runtime enum converters require dynamic code. Use CreateOptions with a generated JSON context for AOT.")]
+    private static JsonSerializerOptions GetReflectionProfile(ref JsonSerializerOptions? cached, JsonSerializerDefaults defaults,
+        bool indented, bool relaxed, bool enums, bool comments)
+    {
+        lock (_sync)
+        {
+            if (cached is not null)
+                return cached;
+            JsonSerializerOptions options = CreateProfile(defaults, indented, relaxed, comments);
+            if (enums)
+                options.Converters.Add(new JsonStringEnumConverter());
+            options.TypeInfoResolver = new DefaultJsonTypeInfoResolver();
+            options.MakeReadOnly();
+            return cached = options;
         }
     }
-    // -------- Holders (initialize on first access) --------
 
-    private static class GeneralHolder
+    private static JsonSerializerOptions CreateProfile(JsonSerializerDefaults defaults, bool indented, bool relaxed, bool comments)
     {
-        internal static readonly JsonSerializerOptions Value = CreateFrozen(JsonSerializerDefaults.General,
-            writeIndented: false, unsafeRelaxedEscaping: false, includeEnumConverter: false, skipComments: true);
-    }
-
-    private static class WebHolder
-    {
-        internal static readonly JsonSerializerOptions Value = CreateFrozen(JsonSerializerDefaults.Web,
-            writeIndented: false, unsafeRelaxedEscaping: false, includeEnumConverter: true, skipComments: true);
-    }
-
-    private static class PrettyHolder
-    {
-        internal static readonly JsonSerializerOptions Value = CreateFrozen(JsonSerializerDefaults.General,
-            writeIndented: true, unsafeRelaxedEscaping: true, includeEnumConverter: true, skipComments: false);
-    }
-
-    private static class PrettySafeHolder
-    {
-        internal static readonly JsonSerializerOptions Value = CreateFrozen(JsonSerializerDefaults.General,
-            writeIndented: true, unsafeRelaxedEscaping: false, includeEnumConverter: true, skipComments: false);
-    }
-
-    // -------- Builders --------
-
-    private static JsonSerializerOptions CreateFrozen(JsonSerializerDefaults defaults, bool writeIndented,
-        bool unsafeRelaxedEscaping, bool includeEnumConverter, bool skipComments)
-    {
-        var opts = new JsonSerializerOptions(defaults)
+        var options = new JsonSerializerOptions(defaults)
         {
-            WriteIndented = writeIndented,
+            WriteIndented = indented,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         };
-
-        if (unsafeRelaxedEscaping)
-            opts.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
-
-        if (skipComments)
-            opts.ReadCommentHandling = JsonCommentHandling.Skip;
-
-        if (includeEnumConverter)
-            opts.Converters.Add(_stjEnum);
-
-        EnsureResolver(opts);
-
-        opts.MakeReadOnly();
-        return opts;
-    }
-
-    private static void EnsureResolver(JsonSerializerOptions opts)
-    {
-        if (opts.TypeInfoResolver is null && opts.TypeInfoResolverChain.Count == 0)
-        {
-            opts.TypeInfoResolver = _reflectionResolver;
-        }
+        if (relaxed) options.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
+        if (comments) options.ReadCommentHandling = JsonCommentHandling.Skip;
+        return options;
     }
 }
