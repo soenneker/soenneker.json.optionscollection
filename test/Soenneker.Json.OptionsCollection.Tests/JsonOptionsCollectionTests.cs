@@ -17,7 +17,7 @@ public class JsonOptionsCollectionTests : HostedUnitTest
     }
 
     [Test]
-    public async Task System_text_json_profiles_are_read_only()
+    public async ValueTask System_text_json_profiles_are_read_only()
     {
         await Assert.That(JsonOptionsCollection.GeneralOptions.IsReadOnly).IsTrue();
         await Assert.That(JsonOptionsCollection.WebOptions.IsReadOnly).IsTrue();
