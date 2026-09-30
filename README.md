@@ -6,7 +6,7 @@
 
 # Soenneker.Json.OptionsCollection
 
-Common serializer profiles for `System.Text.Json` and Newtonsoft.Json.
+Common serializer profiles for `System.Text.Json`.
 
 ## Install
 
@@ -56,16 +56,3 @@ JsonSerializerOptions options =
 ```
 
 `GeneralValue`, `PrettyValue`, and `PrettySafeValue` select their matching profiles. A null or unrecognized value falls back to `WebOptions`.
-
-## Newtonsoft.Json
-
-```csharp
-using Newtonsoft.Json;
-
-JsonSerializerSettings settings = JsonOptionsCollection.Newtonsoft;
-settings.DateParseHandling = DateParseHandling.None;
-
-string json = JsonConvert.SerializeObject(value, settings);
-```
-
-Each access returns a new settings object, so caller customization cannot alter another serializer's behavior. The defaults omit null properties, write enums as strings, and leave `CheckAdditionalContent` disabled.
