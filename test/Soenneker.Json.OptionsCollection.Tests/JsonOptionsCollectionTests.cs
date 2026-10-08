@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Soenneker.Tests.HostedUnit;
+using System.Threading;
 
 namespace Soenneker.Json.OptionsCollection.Tests;
 
@@ -17,7 +18,7 @@ public class JsonOptionsCollectionTests : HostedUnitTest
     }
 
     [Test]
-    public async ValueTask System_text_json_profiles_are_read_only()
+    public async ValueTask System_text_json_profiles_are_read_only(CancellationToken cancellationToken)
     {
         await Assert.That(JsonOptionsCollection.GeneralOptions.IsReadOnly).IsTrue();
         await Assert.That(JsonOptionsCollection.WebOptions.IsReadOnly).IsTrue();
